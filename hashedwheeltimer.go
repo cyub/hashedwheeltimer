@@ -60,14 +60,10 @@ func (hwt *HashedWheelTimer) NewTimeout(task TimeTask, delay time.Duration) Time
 }
 
 func (hwt *HashedWheelTimer) start() {
-	hwt.startTime = time.Now().UnixNano()
-	if hwt.startTime == 0 {
-		hwt.startTime = 1
-	}
-
 	switch atomic.LoadInt64(&hwt.state) {
 	case TIMER_STATE_INIT:
 		if atomic.CompareAndSwapInt64(&hwt.state, TIMER_STATE_INIT, TIMER_STATE_STARTED) {
+			hwt.startTime = time.Now().UnixNano()
 			go hwt.run()
 		}
 	case TIMER_STATE_STARTED:
@@ -106,7 +102,7 @@ func (hwt *HashedWheelTimer) waitForNextTick() time.Duration {
 	deadline := hwt.tickDuration * time.Duration(hwt.tick+1)
 	for {
 		currentTime := time.Duration(time.Now().UnixNano() - hwt.startTime)
-		sleepTime := (deadline - currentTime + 999999) / 1000000
+		sleepTime := deadline - currentTime
 		if sleepTime <= 0 { // reached the tick
 			return currentTime
 		}
